@@ -7,11 +7,14 @@ OBJDUMP = objdump
 NM = nm
 
 CFLAGS = -m32 -Wall -O -fstrength-reduce -fomit-frame-pointer -finline-functions -nostdinc -fno-builtin 
+LDFLAGS = -m elf_i386
 
 # Add debug symbol
 CFLAGS += -g
 
 CFLAGS += -I.
+# resolve __stack_chk_fai
+CFLAGS += -fno-stack-protector
 
 OBJDIR = .
 
@@ -25,6 +28,6 @@ all: boot/boot kernel/system
 	dd if=$(OBJDIR)/kernel/system of=$(OBJDIR)/kernel.img seek=1 conv=notrunc 2>/dev/null
 
 clean:
-	rm $(OBJDIR)/boot/*.o $(OBJDIR)/boot/boot.out $(OBJDIR)/boot/boot $(OBJDIR)/boot/boot.asm
-	rm $(OBJDIR)/kernel/*.o $(OBJDIR)/kernel/system* kernel.*
-	rm $(OBJDIR)/lib/*.o
+	rm -rf $(OBJDIR)/boot/*.o $(OBJDIR)/boot/boot.out $(OBJDIR)/boot/boot $(OBJDIR)/boot/boot.asm
+	rm -rf $(OBJDIR)/kernel/*.o $(OBJDIR)/kernel/system* kernel.*
+	rm -rf $(OBJDIR)/lib/*.o

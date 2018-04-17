@@ -147,6 +147,8 @@ mem_init(void)
 	// to initialize all fields of each struct PageInfo to 0.
 	// Your code goes here:
     /* TODO */
+	pages = (struct PageInfo*)boot_alloc(sizeof(struct PageInfo)*npages);
+	memset(pages,0,sizeof(struct PageInfo)*npages);
 
 	//////////////////////////////////////////////////////////////////////
 	// Now that we've allocated the initial kernel data structures, we set
@@ -259,11 +261,34 @@ page_init(void)
 	
     /* TODO */
     size_t i;
-	for (i = 0; i < npages; i++) {
+	/* cprintf("npages:%d\n",npages); */
+	/* cprintf("npages_basemem:%d\n",npages_basemem); */
+	pages[0].pp_ref = 1;
+	pages[0].pp_link = NULL;
+	/* base 1~159 */
+	for (i = 1; i < npages_basemem; i++) {
+		pages[i].pp_ref = 0;
+		pages[i].pp_link = page_free_list;
+		page_free_list = &pages[i];
+	}
+	/* IO space page 160~255 */
+	for(i=npages_basemem;i<PGNUM(EXTPHYSMEM);i++) {
+		pages[i].pp_ref = 1;
+		pages[i].pp_link = NULL;
+	}
+	/* used pages 256~304 */
+	size_t nextfreePageNum=PGNUM(nextfree-KERNBASE);
+	/* cprintf("nextfree page num:%d\n",nextfreePageNum); */
+	for(i=PGNUM(EXTPHYSMEM);i<nextfreePageNum;i++)
+	{
+		pages[i].pp_ref = 1;
+		pages[i].pp_link = NULL;
+	}
 
-        pages[i].pp_ref = 0;
-        pages[i].pp_link = page_free_list;
-        page_free_list = &pages[i];
+	for (i = nextfreePageNum; i < npages; i++) {
+		pages[i].pp_ref = 0;
+		pages[i].pp_link = page_free_list;
+		page_free_list = &pages[i];
     }
 }
 

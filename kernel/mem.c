@@ -308,6 +308,19 @@ struct PageInfo *
 page_alloc(int alloc_flags)
 {
     /* TODO */
+	if(page_free_list==NULL)
+	{
+		return NULL;
+	}
+	else
+	{
+		struct PageInfo *res = page_free_list;
+		page_free_list = res->pp_link;
+		res->pp_link = NULL;
+		if(alloc_flags&ALLOC_ZERO)
+			memset(page2kva(res),'\0',sizeof(char)*PGSIZE);
+		return res;
+	}
 }
 
 //
@@ -321,6 +334,26 @@ page_free(struct PageInfo *pp)
 	// Hint: You may want to panic if pp->pp_ref is nonzero or
 	// pp->pp_link is not NULL.
     /* TODO */
+	if(pp->pp_ref!=0)
+		panic("pp->pp_ref is nonzero");
+	else if(pp->pp_link!=NULL)
+		panic("pp->pp_link is not NULL");
+
+	/* insert at head */
+	pp->pp_link=page_free_list;
+	page_free_list=pp;
+
+	/* insert at tail */
+	/* if(page_free_list==NULL) */
+	/* { */
+	/* 	page_free_list=pp; */
+	/* } */
+	/* else */
+	/* { */
+	/* 	struct PageInfo *p; */
+	/* 	for(p=page_free_list;p->pp_link;p=p->pp_link); */
+	/* 	p->pp_link=pp; */
+	/* } */
 }
 
 //

@@ -432,6 +432,12 @@ static void
 boot_map_region(pde_t *pgdir, uintptr_t va, size_t size, physaddr_t pa, int perm)
 {
     /* TODO */
+	int pageCnt = size / PGSIZE;
+	for(int i=0;i<pageCnt;i++)
+	{
+		pte_t *pte = pgdir_walk(pgdir,(void*)(va+i*PGSIZE),true);
+		*pte = PTE_ADDR(pa)|perm|PTE_P;
+	}
 }
 
 //

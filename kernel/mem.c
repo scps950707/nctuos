@@ -411,7 +411,7 @@ pgdir_walk(pde_t *pgdir, const void *va, int create)
 				return NULL;
 			pp->pp_ref++;
 			pgtablePA = page2pa(pp);
-			pgdir[PDX(va)]=pgtablePA|PTE_P|PTE_W|PTE_U;
+			pgdir[PDX(va)]=pgtablePA|PTE_P;
 			return (pte_t*)KADDR(pgtablePA)+PTX(va);
 		}
 	}
@@ -435,8 +435,11 @@ boot_map_region(pde_t *pgdir, uintptr_t va, size_t size, physaddr_t pa, int perm
 	int pageCnt = size / PGSIZE;
 	for(int i=0;i<pageCnt;i++)
 	{
-		pte_t *pte = pgdir_walk(pgdir,(void*)(va+i*PGSIZE),true);
+		pte_t *pte = pgdir_walk(pgdir,(void*)(va),true);
 		*pte = PTE_ADDR(pa)|perm|PTE_P;
+		pgdir[PDX(va)]|=perm;
+		va += PGSIZE;
+		pa += PGSIZE;
 	}
 }
 
@@ -477,6 +480,7 @@ page_insert(pde_t *pgdir, struct PageInfo *pp, void *va, int perm)
 			return -E_NO_MEM;
 		pp->pp_ref++;
 		*pteNew = page2pa(pp)|perm|PTE_P;
+		pgdir[PDX(va)]|=perm;
 	}
 	else
 	{
@@ -486,6 +490,7 @@ page_insert(pde_t *pgdir, struct PageInfo *pp, void *va, int perm)
 		if(*pte)
 			page_remove(pgdir,va);
 		*pte = page2pa(pp)|perm|PTE_P;
+		pgdir[PDX(va)]|=perm;
 	}
 	return 0;
 }

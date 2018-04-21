@@ -24,6 +24,7 @@ extern void timer_handler();
 extern void kbd_intr();
 extern void irq_timer_handler();
 extern void irq_kbd_intr();
+extern void irq_page_fault();
 
 /* For debugging */
 static const char *trapname(int trapno)
@@ -133,6 +134,10 @@ trap_dispatch(struct Trapframe *tf)
         case IRQ_OFFSET+IRQ_KBD:
             kbd_intr();
             break;
+		case T_PGFLT:
+			if (tf == last_tf && tf->tf_trapno == T_PGFLT)
+				cprintf("[0656017]Page fault @ 0x%08x\n", rcr2());
+			while(1);
         default:
             // Unexpected trap: The user process or the kernel has a bug.
             print_trapframe(tf);
@@ -181,6 +186,8 @@ void trap_init()
     SETGATE(idt[IRQ_OFFSET+IRQ_KBD],0,GD_KT,irq_kbd_intr,0);
 	/* Timer Trap setup */
     SETGATE(idt[IRQ_OFFSET+IRQ_TIMER],0,GD_KT,irq_timer_handler,0);
+	/* page fault */
+    SETGATE(idt[T_PGFLT],0,GD_KT,irq_page_fault,0);
   /* Load IDT */
     lidt(&pd);
 }

@@ -3,6 +3,8 @@ GCC_LIB := $(shell $(CC) $(CFLAGS) -print-libgcc-file-name)
 
 KERN_LDFLAGS = -T kernel/kern.ld
 
+KERN_LDFLAGS += -m elf_i386
+
 KERN_OBJS = kernel/entry.o \
 	kernel/main.o \
 	kernel/picirq.o \

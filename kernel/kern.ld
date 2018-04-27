@@ -24,7 +24,6 @@ PROVIDE(stext = .);
   lib/syscall.o (.text)
   user/shell.o (.text)
   user/main.o (.text)
-  /usr/lib/gcc/i686-redhat-linux/4.5.1/libgcc.a (.*)
   PROVIDE(UTEXT_end = .);
   *(.text .stub .text.* .gnu.linkonce.t.*)
 }

@@ -42,6 +42,6 @@ user/%.o: user/%.c
 
 kernel/system: $(KERN_OBJS) $(ULIB) $(UPROG)
 	@echo + ld kernel/system
-	$(LD) $(KERN_LDFLAGS) $(KERN_OBJS) -o $@
+	$(LD) $(KERN_LDFLAGS) $(KERN_OBJS) $(GCC_LIB) -o $@
 	$(OBJDUMP) -S $@ > $@.asm
 	$(NM) -n $@ > $@.sym

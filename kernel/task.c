@@ -100,6 +100,15 @@ int task_create()
 	Task *ts = NULL;
 
 	/* Find a free task structure */
+	for(int i=0;i<NR_TASKS;i++)
+	{
+		if(tasks[i].state==TASK_FREE)
+		{
+			ts = &tasks[i];
+		}
+	}
+	if(ts==NULL)
+		return -1;
 
   /* Setup Page Directory and pages for kernel*/
   if (!(ts->pgdir = setupkvm()))

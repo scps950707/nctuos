@@ -598,6 +598,11 @@ setupvm(pde_t *pgdir, uint32_t start, uint32_t size)
 pde_t *
 setupkvm()
 {
+	struct PageInfo *pp = page_alloc(ALLOC_ZERO);
+	pde_t *pde = page2kva(pp);
+	boot_map_region(pde, KERNBASE, ROUNDUP((0xffffffff-KERNBASE),PGSIZE),0x0,(PTE_P|PTE_W));
+	boot_map_region(pde, IOPHYSMEM, ROUNDUP((EXTPHYSMEM - IOPHYSMEM), PGSIZE), IOPHYSMEM, (PTE_W) | (PTE_P));
+	return pde;
 }
 
 

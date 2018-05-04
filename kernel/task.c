@@ -116,7 +116,7 @@ int task_create()
     panic("Not enough memory for per process page directory!\n");
 
   /* Setup User Stack */
-	for(int i=USTACKTOP-USR_STACK_SIZE;i<USTACKTOP;i+=PGSIZE)
+	for(uint32_t i=USTACKTOP-USR_STACK_SIZE;i<USTACKTOP;i+=PGSIZE)
 	{
 		struct PageInfo *pp = page_alloc(ALLOC_ZERO);
 		if(page_insert(ts->pgdir,pp,(void*)i,PTE_U)<0)
@@ -158,6 +158,11 @@ int task_create()
  */
 static void task_free(int pid)
 {
+	lcr3(PADDR(kern_pgdir));
+	for(uint32_t i=USTACKTOP-USR_STACK_SIZE;i<USTACKTOP;i+=PGSIZE)
+		page_remove(tasks[pid].pgdir,(void*)i);
+	ptable_remove(tasks[pid].pgdir);
+	pgdir_remove(tasks[pid].pgdir);
 }
 
 void sys_kill(int pid)

@@ -177,6 +177,9 @@ void sys_kill(int pid)
    * Free the memory
    * and invoke the scheduler for yield
    */
+		tasks[pid].state=TASK_FREE;
+		task_free(pid);
+		sched_yield();
 	}
 }
 

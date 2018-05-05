@@ -106,6 +106,7 @@ int task_create()
 		if(tasks[id].state==TASK_FREE)
 		{
 			ts = &tasks[id];
+			break;
 		}
 	}
 	if(ts==NULL)

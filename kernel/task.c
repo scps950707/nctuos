@@ -119,8 +119,10 @@ int task_create()
   /* Setup User Stack */
 	for(uint32_t i=USTACKTOP-USR_STACK_SIZE;i<USTACKTOP;i+=PGSIZE)
 	{
-		struct PageInfo *pp = page_alloc(ALLOC_ZERO);
-		if(page_insert(ts->pgdir,pp,(void*)i,PTE_U)<0)
+		struct PageInfo *pp = NULL;
+		if((pp = page_alloc(ALLOC_ZERO))==NULL)
+			panic("page alloc failed");
+		if(page_insert(ts->pgdir,pp,(void*)i,PTE_U|PTE_W)<0)
 			panic("E_NO_MEM");
 	}
 
@@ -135,7 +137,7 @@ int task_create()
 
 	/* Setup task structure (task_id and parent_id) */
 	ts->task_id = id;
-	ts->parent_id = id;
+	ts->parent_id = cur_task?cur_task->task_id:id;
 	return ts->task_id;
 }
 
@@ -206,15 +208,30 @@ int sys_fork()
 {
   /* pid for newly created process */
   int pid;
+	if((pid=task_create())<0)
+	{
+		return -1;
+	}
 	if ((uint32_t)cur_task)
 	{
+		tasks[pid].tf=cur_task->tf;
+
+		physaddr_t parent_stack = page2pa(page_lookup(cur_task->pgdir,USTACKTOP-USR_STACK_SIZE,NULL));
+		physaddr_t child_stack = page2pa(page_lookup(tasks[pid].pgdir,USTACKTOP-USR_STACK_SIZE,NULL));
+		memcpy(KADDR(child_stack),KADDR(parent_stack),USR_STACK_SIZE);
+
     /* Step 4: All user program use the same code for now */
     setupvm(tasks[pid].pgdir, (uint32_t)UTEXT_start, UTEXT_SZ);
     setupvm(tasks[pid].pgdir, (uint32_t)UDATA_start, UDATA_SZ);
     setupvm(tasks[pid].pgdir, (uint32_t)UBSS_start, UBSS_SZ);
     setupvm(tasks[pid].pgdir, (uint32_t)URODATA_start, URODATA_SZ);
 
+		tasks[pid].tf.tf_regs.reg_eax=0;
+		/* cur_task->tf.tf_regs.reg_eax=pid; */
+		tasks[pid].state = TASK_RUNNABLE;
+		tasks[pid].remind_ticks = TIME_QUANT;
 	}
+	return pid;
 }
 
 /* TODO: Lab5

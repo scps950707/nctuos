@@ -51,6 +51,7 @@ i386_detect_memory(void)
       npages * PGSIZE / 1024,
       npages_basemem * PGSIZE / 1024,
       npages_extmem * PGSIZE / 1024);
+	num_free_pages=0;
 }
 
 
@@ -273,6 +274,7 @@ page_init(void)
 		pages[i].pp_ref = 0;
 		pages[i].pp_link = page_free_list;
 		page_free_list = &pages[i];
+		num_free_pages++;
 	}
 	/* IO space page 160~255 */
 	for(i=npages_basemem;i<PGNUM(EXTPHYSMEM);i++) {
@@ -292,6 +294,7 @@ page_init(void)
 		pages[i].pp_ref = 0;
 		pages[i].pp_link = page_free_list;
 		page_free_list = &pages[i];
+		num_free_pages++;
     }
 }
 
@@ -322,6 +325,7 @@ page_alloc(int alloc_flags)
 		res->pp_link = NULL;
 		if(alloc_flags&ALLOC_ZERO)
 			memset(page2kva(res),'\0',sizeof(char)*PGSIZE);
+		num_free_pages--;
 		return res;
 	}
 }
@@ -346,6 +350,7 @@ page_free(struct PageInfo *pp)
 	pp->pp_link=page_free_list;
 	page_free_list=pp;
 
+	num_free_pages++;
 	/* insert at tail */
 	/* if(page_free_list==NULL) */
 	/* { */

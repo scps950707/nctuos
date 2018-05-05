@@ -609,7 +609,7 @@ setupkvm()
 	boot_map_region(pde, IOPHYSMEM, ROUNDUP((EXTPHYSMEM - IOPHYSMEM), PGSIZE), IOPHYSMEM,PTE_W);
 	extern char stext[],data_start[],end[];
 	/* kernel text rodata */
-	boot_map_region(pde, (uintptr_t)stext,ROUNDUP((uintptr_t)data_start-(uintptr_t)stext,PGSIZE),PADDR(stext),PTE_U);
+	boot_map_region(pde, (uintptr_t)stext,ROUNDUP((uintptr_t)data_start-(uintptr_t)stext,PGSIZE),PADDR(stext),0);
 	/* kernel data bss */
 	boot_map_region(pde,(uintptr_t)data_start,ROUNDUP(0xffffffff-(uintptr_t)data_start,PGSIZE),PADDR(data_start),PTE_W);
 	return pde;

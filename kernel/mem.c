@@ -605,8 +605,13 @@ setupkvm()
 {
 	struct PageInfo *pp = page_alloc(ALLOC_ZERO);
 	pde_t *pde = page2kva(pp);
-	boot_map_region(pde, KERNBASE, ROUNDUP((0xffffffff-KERNBASE),PGSIZE),0x0,(PTE_P|PTE_W));
-	boot_map_region(pde, IOPHYSMEM, ROUNDUP((EXTPHYSMEM - IOPHYSMEM), PGSIZE), IOPHYSMEM, (PTE_W) | (PTE_P));
+	/* io */
+	boot_map_region(pde, IOPHYSMEM, ROUNDUP((EXTPHYSMEM - IOPHYSMEM), PGSIZE), IOPHYSMEM,PTE_W);
+	extern char stext[],data_start[],end[];
+	/* kernel text rodata */
+	boot_map_region(pde, (uintptr_t)stext,ROUNDUP((uintptr_t)data_start-(uintptr_t)stext,PGSIZE),PADDR(stext),PTE_U);
+	/* kernel data bss */
+	boot_map_region(pde,(uintptr_t)data_start,ROUNDUP(0xffffffff-(uintptr_t)data_start,PGSIZE),PADDR(data_start),PTE_W);
 	return pde;
 }
 

@@ -138,6 +138,8 @@ int task_create()
 	/* Setup task structure (task_id and parent_id) */
 	ts->task_id = id;
 	ts->parent_id = cur_task?cur_task->task_id:id;
+	ts->state = TASK_RUNNABLE;
+	ts->remind_ticks = TIME_QUANT; //task_init didn't setup
 	return ts->task_id;
 }
 
@@ -215,13 +217,16 @@ int sys_fork()
 	{
 		return -1;
 	}
-	if ((uint32_t)cur_task)
+	if ((uintptr_t)cur_task)
 	{
 		tasks[pid].tf=cur_task->tf;
 
-		physaddr_t parent_stack = page2pa(page_lookup(cur_task->pgdir,USTACKTOP-USR_STACK_SIZE,NULL));
-		physaddr_t child_stack = page2pa(page_lookup(tasks[pid].pgdir,USTACKTOP-USR_STACK_SIZE,NULL));
-		memcpy(KADDR(child_stack),KADDR(parent_stack),USR_STACK_SIZE);
+		for(uintptr_t i=USTACKTOP-USR_STACK_SIZE;i<USTACKTOP;i+=PGSIZE)
+		{
+			void *parent_stack = page2kva(page_lookup(cur_task->pgdir,(void*)i,NULL));
+			void *child_stack = page2kva(page_lookup(tasks[pid].pgdir,(void*)i,NULL));
+			memcpy(child_stack,parent_stack,PGSIZE);
+		}
 
     /* Step 4: All user program use the same code for now */
     setupvm(tasks[pid].pgdir, (uint32_t)UTEXT_start, UTEXT_SZ);
@@ -231,8 +236,6 @@ int sys_fork()
 
 		tasks[pid].tf.tf_regs.reg_eax=0;
 		/* cur_task->tf.tf_regs.reg_eax=pid; */
-		tasks[pid].state = TASK_RUNNABLE;
-		tasks[pid].remind_ticks = TIME_QUANT;
 	}
 	return pid;
 }

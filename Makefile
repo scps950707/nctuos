@@ -18,6 +18,7 @@ CFLAGS += -fno-stack-protector
 
 OBJDIR = .
 
+CPUS ?= 1
 
 include boot/Makefile
 include kernel/Makefile
@@ -35,7 +36,7 @@ clean:
 	rm -rf $(OBJDIR)/user/*.asm
 
 qemu:
-	qemu-system-i386 -hda kernel.img -monitor stdio
+	qemu-system-i386 -hda kernel.img -monitor stdio -smp $(CPUS)
 
 debug:
-	qemu-system-i386 -hda kernel.img -monitor stdio -s -S
+	qemu-system-i386 -hda kernel.img -monitor stdio -s -S -smp $(CPUS)

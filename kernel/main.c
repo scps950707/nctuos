@@ -2,6 +2,7 @@
 #include <inc/kbd.h>
 #include <inc/shell.h>
 #include <inc/x86.h>
+#include <inc/string.h>
 #include <kernel/mem.h>
 #include <kernel/trap.h>
 #include <kernel/picirq.h>
@@ -77,6 +78,8 @@ boot_aps(void)
 	//      -- Wait for the CPU to finish some basic setup in mp_main(
 	// 
 	// Your code here:
+	extern char mpentry_start[],mpentry_end[];
+	memmove(KADDR(MPENTRY_PADDR),(void*)mpentry_start,mpentry_end-mpentry_start);
 }
 
 // Setup code for APs

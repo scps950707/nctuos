@@ -702,6 +702,10 @@ setupkvm()
 	boot_map_region(pde, (uintptr_t)stext,ROUNDUP((uintptr_t)data_start-(uintptr_t)stext,PGSIZE),PADDR(stext),0);
 	/* kernel data bss */
 	boot_map_region(pde,(uintptr_t)data_start,ROUNDUP(0xffffffff-(uintptr_t)data_start,PGSIZE),PADDR(data_start),PTE_W);
+	/* per-CPU kernel stack */
+	int cpuIdx = cpunum();
+	uintptr_t kstacktop_i = KSTACKTOP - cpuIdx * (KSTKSIZE + KSTKGAP);
+	boot_map_region(pde,kstacktop_i-KSTKSIZE,ROUNDUP(KSTKSIZE,PGSIZE),PADDR(&percpu_kstacks[cpuIdx]),PTE_W);
 	return pde;
 }
 

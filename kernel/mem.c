@@ -255,7 +255,11 @@ mem_init_mp(void)
 	//     Permissions: kernel RW, user NONE
 	// TODO:
 	// Lab6: Your code here:
-
+	for(int i=0;i<NCPU;i++)
+	{
+		uintptr_t kstacktop_i = KSTACKTOP - i * (KSTKSIZE + KSTKGAP);
+		boot_map_region(kern_pgdir,kstacktop_i-KSTKSIZE,ROUNDUP(KSTKSIZE,PGSIZE),PADDR(&percpu_kstacks[i]),PTE_W);
+	}
 }
 
 // --------------------------------------------------------------
@@ -305,6 +309,12 @@ page_init(void)
 	pages[0].pp_link = NULL;
 	/* base 1~159 */
 	for (i = 1; i < npages_basemem; i++) {
+		if(i==PGNUM(MPENTRY_PADDR))
+		{
+			pages[i].pp_ref = 1;
+			pages[i].pp_link = NULL;
+			continue;
+		}
 		pages[i].pp_ref = 0;
 		pages[i].pp_link = page_free_list;
 		page_free_list = &pages[i];
@@ -652,9 +662,12 @@ mmio_map_region(physaddr_t pa, size_t size)
 	//
 	// Lab6 TODO
 	// Your code here:
-	
-
-	panic("mmio_map_region not implemented");
+	void *ret = (void*)base;
+	if(base+size>MMIOLIM)
+		panic("overflow MMIOLIM");
+	boot_map_region(kern_pgdir,base,ROUNDUP(size,PGSIZE),pa,PTE_PCD|PTE_PWT|PTE_W);
+	base+=ROUNDUP(size,PGSIZE);
+	return ret;
 }
 
 /* This is a simple wrapper function for mapping user program */

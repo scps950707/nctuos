@@ -80,6 +80,12 @@ boot_aps(void)
 	// Your code here:
 	extern char mpentry_start[],mpentry_end[];
 	memmove(KADDR(MPENTRY_PADDR),(void*)mpentry_start,mpentry_end-mpentry_start);
+	for(int i=0;i<NCPU;i++)
+	{
+		mpentry_kstack = percpu_kstacks[i];
+		lapic_startap(cpus[i].cpu_id,MPENTRY_PADDR);
+		while(cpus[i].cpu_status!=CPU_STARTED);
+	}
 }
 
 // Setup code for APs

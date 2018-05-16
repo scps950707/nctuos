@@ -43,8 +43,7 @@
 void sched_yield(void)
 {
 	extern Task tasks[];
-	extern Task *cur_task;
-	int next_task_pid = cur_task->task_id +1;
+	int next_task_pid = thiscpu->cpu_task->task_id +1;
 	while(1)
 	{
 		if(next_task_pid==NR_TASKS)
@@ -53,9 +52,9 @@ void sched_yield(void)
 			break;
 		next_task_pid++;
 	}
-	cur_task = &tasks[next_task_pid];
-	cur_task->state = TASK_RUNNING;
-	cur_task->remind_ticks = TIME_QUANT;
-	lcr3(PADDR(cur_task->pgdir));
-	ctx_switch(cur_task);
+	thiscpu->cpu_task = &tasks[next_task_pid];
+	thiscpu->cpu_task->state = TASK_RUNNING;
+	thiscpu->cpu_task->remind_ticks = TIME_QUANT;
+	lcr3(PADDR(thiscpu->cpu_task->pgdir));
+	ctx_switch(thiscpu->cpu_task);
 }

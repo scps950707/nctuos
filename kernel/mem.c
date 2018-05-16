@@ -698,6 +698,8 @@ setupkvm()
 	/* io */
 	boot_map_region(pde, IOPHYSMEM, ROUNDUP((EXTPHYSMEM - IOPHYSMEM), PGSIZE), IOPHYSMEM,PTE_W);
 	extern char stext[],data_start[],end[];
+	/* KERNBASE to stext*/
+	boot_map_region(pde,KERNBASE,ROUNDUP((uintptr_t)stext-KERNBASE,PGSIZE),0x0,PTE_W);
 	/* kernel text rodata */
 	boot_map_region(pde, (uintptr_t)stext,ROUNDUP((uintptr_t)data_start-(uintptr_t)stext,PGSIZE),PADDR(stext),0);
 	/* kernel data bss */
@@ -707,7 +709,8 @@ setupkvm()
 	uintptr_t kstacktop_i = KSTACKTOP - cpuIdx * (KSTKSIZE + KSTKGAP);
 	boot_map_region(pde,kstacktop_i-KSTKSIZE,ROUNDUP(KSTKSIZE,PGSIZE),PADDR(&percpu_kstacks[cpuIdx]),PTE_W);
 	/* MMIO region for local apic */
-	boot_map_region(pde,MMIOBASE,ROUNDUP(MMIOLIM-MMIOBASE,PGSIZE),lapicaddr,PTE_W);
+	extern uint32_t *lapic;
+	boot_map_region(pde, (uintptr_t) lapic,PGSIZE,lapicaddr,PTE_PCD|PTE_PWT|PTE_W);
 	return pde;
 }
 

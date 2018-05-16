@@ -79,9 +79,10 @@ boot_aps(void)
 	// Your code here:
 	extern char mpentry_start[],mpentry_end[];
 	memmove(KADDR(MPENTRY_PADDR),(void*)mpentry_start,mpentry_end-mpentry_start);
-	for(int i=0;i<NCPU;i++)
+	for(int i=0;i<ncpu;i++)
 	{
-		mpentry_kstack = percpu_kstacks[i];
+		if(i==bootcpu-cpus) continue;
+		mpentry_kstack = percpu_kstacks[i]+KSTKSIZE;
 		lapic_startap(cpus[i].cpu_id,MPENTRY_PADDR);
 		while(cpus[i].cpu_status!=CPU_STARTED);
 	}
@@ -158,12 +159,16 @@ mp_main(void)
 	printk("SMP: CPU %d starting\n", cpunum());
 	
 	// Your code here:
+	lapic_init();
+	task_init_percpu();
+	lidt(&idt_pd);
 	
 
 	// TODO: Lab6
 	// Now that we have finished some basic setup, it's time to tell
 	// boot_aps() we're up ( using xchg )
 	// Your code here:
+	xchg(&thiscpu->cpu_status,CPU_STARTED);
 
 
 

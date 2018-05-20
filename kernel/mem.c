@@ -9,6 +9,7 @@
 #include <kernel/mem.h>
 #include <kernel/kclock.h>
 #include <kernel/cpu.h>
+#include <kernel/spinlock.h>
 
 // These variables are set by i386_detect_memory()
 size_t                   npages;			// Amount of physical memory (in pages)
@@ -354,12 +355,15 @@ page_init(void)
 // Returns NULL if out of free memory.
 //
 // Hint: use page2kva and memset
+struct spinlock page_allocLock;
 struct PageInfo *
 page_alloc(int alloc_flags)
 {
+	spin_lock(&page_allocLock);
     /* TODO */
 	if(page_free_list==NULL)
 	{
+		spin_unlock(&page_allocLock);
 		return NULL;
 	}
 	else
@@ -370,6 +374,7 @@ page_alloc(int alloc_flags)
 		if(alloc_flags&ALLOC_ZERO)
 			memset(page2kva(res),'\0',sizeof(char)*PGSIZE);
 		num_free_pages--;
+		spin_unlock(&page_allocLock);
 		return res;
 	}
 }

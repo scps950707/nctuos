@@ -6,6 +6,7 @@
 #include <kernel/task.h>
 #include <kernel/mem.h>
 #include <kernel/cpu.h>
+#include <kernel/spinlock.h>
 
 // Global descriptor table.
 //
@@ -94,8 +95,10 @@ extern void sched_yield(void);
  * 6. Return the pid of the newly created task.
  
  */
+struct spinlock tasksLock;
 int task_create()
 {
+	spin_lock(&tasksLock);
 	Task *ts = NULL;
 
 	/* Find a free task structure */
@@ -139,6 +142,7 @@ int task_create()
 	ts->parent_id =thiscpu->cpu_task?thiscpu->cpu_task->task_id:id;
 	ts->state = TASK_RUNNABLE;
 	ts->remind_ticks = TIME_QUANT; //task_init didn't setup
+	spin_unlock(&tasksLock);
 	return ts->task_id;
 }
 
@@ -186,8 +190,10 @@ void sys_kill(int pid)
    * Free the memory
    * and invoke the scheduler for yield
    */
+		spin_lock(&tasksLock);
 		tasks[pid].state=TASK_FREE;
 		task_free(pid);
+		spin_unlock(&tasksLock);
 		int idx=0;
 		for(idx=0;idx<thiscpu->cpu_rq.cnt;idx++)
 			if(thiscpu->cpu_rq.rq[idx]->task_id==pid) break;

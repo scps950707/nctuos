@@ -4,15 +4,19 @@
 #include <kernel/cpu.h>
 #include <kernel/syscall.h>
 #include <kernel/trap.h>
+#include <kernel/spinlock.h>
 #include <inc/stdio.h>
 
+struct spinlock consoleLock;
 void do_puts(char *str, uint32_t len)
 {
+	spin_lock(&consoleLock);
 	uint32_t i;
 	for (i = 0; i < len; i++)
 	{
 		k_putch(str[i]);
 	}
+	spin_unlock(&consoleLock);
 }
 
 int32_t do_getc()

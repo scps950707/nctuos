@@ -41,7 +41,8 @@ typedef struct
 //
 typedef struct
 {
-
+	uint32_t cnt;
+	Task *rq[NR_TASKS];
 } Runqueue;
 
 

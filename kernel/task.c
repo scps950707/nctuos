@@ -188,6 +188,12 @@ void sys_kill(int pid)
    */
 		tasks[pid].state=TASK_FREE;
 		task_free(pid);
+		int idx=0;
+		for(idx=0;idx<thiscpu->cpu_rq.cnt;idx++)
+			if(thiscpu->cpu_rq.rq[idx]->task_id==pid) break;
+		for(int i=idx;i<thiscpu->cpu_rq.cnt;i++)
+			thiscpu->cpu_rq.rq[i]=thiscpu->cpu_rq.rq[i+1];
+		thiscpu->cpu_rq.cnt--;
 		sched_yield();
 	}
 }
@@ -250,6 +256,11 @@ int sys_fork()
 
 		tasks[pid].tf.tf_regs.reg_eax=0;
 		/* cur_task->tf.tf_regs.reg_eax=pid; */
+
+		static int nextCPU=0;
+		cpus[nextCPU].cpu_rq.rq[cpus[nextCPU].cpu_rq.cnt]=&tasks[pid];
+		cpus[nextCPU].cpu_rq.cnt++;
+		nextCPU=(nextCPU+1)%ncpu;
 	}
 	return pid;
 }
@@ -301,7 +312,7 @@ void task_init_percpu()
 	// Setup a TSS so that we get the right stack
 	// when we trap to the kernel.
 	memset(&thiscpu->cpu_tss, 0, sizeof(thiscpu->cpu_tss));
-	thiscpu->cpu_tss.ts_esp0 = KSTACKTOP-thiscpu->cpu_id*(KSTKSIZE+KSTKGAP);
+	thiscpu->cpu_tss.ts_esp0 = (uintptr_t)&percpu_kstacks[thiscpu->cpu_id] + KSTKSIZE;
 	thiscpu->cpu_tss.ts_ss0 = GD_KD;
 
 	// fs and gs stay in user data segment
@@ -336,4 +347,8 @@ void task_init_percpu()
 	ltr(GD_TSS0+thiscpu->cpu_id*8);
 
 	thiscpu->cpu_task->state = TASK_RUNNING;
+	for(int j=0;j<NR_TASKS;j++)
+		thiscpu->cpu_rq.rq[j]=NULL;
+	thiscpu->cpu_rq.cnt=1;
+	thiscpu->cpu_rq.rq[0]=&tasks[i];
 }

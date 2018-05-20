@@ -32,7 +32,7 @@ void timer_handler(struct Trapframe *tf)
   jiffies++;
 
   extern Task tasks[];
-
+	lapic_eoi();
 
   if (thiscpu->cpu_task != NULL)
   {
@@ -46,13 +46,13 @@ void timer_handler(struct Trapframe *tf)
    * 4. sched_yield() if the time is up for current task
    *
    */
-	for(i=0;i<NR_TASKS;i++)
+	for(i=thiscpu->cpu_rq.cnt-1;i>=0;i--)
 	{
-		if(tasks[i].state==TASK_SLEEP)
+		if(thiscpu->cpu_rq.rq[i]->state==TASK_SLEEP)
 		{
-			if(--tasks[i].remind_ticks==0)
+			if(--thiscpu->cpu_rq.rq[i]->remind_ticks==0)
 			{
-				tasks[i].state=TASK_RUNNABLE;
+				thiscpu->cpu_rq.rq[i]->state=TASK_RUNNABLE;
 			}
 		}
 	}

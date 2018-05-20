@@ -312,7 +312,7 @@ void task_init_percpu()
 	// Setup a TSS so that we get the right stack
 	// when we trap to the kernel.
 	memset(&thiscpu->cpu_tss, 0, sizeof(thiscpu->cpu_tss));
-	thiscpu->cpu_tss.ts_esp0 = (uintptr_t)&percpu_kstacks[thiscpu->cpu_id] + KSTKSIZE;
+	thiscpu->cpu_tss.ts_esp0 = KSTACKTOP-thiscpu->cpu_id*(KSTKSIZE+KSTKGAP);
 	thiscpu->cpu_tss.ts_ss0 = GD_KD;
 
 	// fs and gs stay in user data segment

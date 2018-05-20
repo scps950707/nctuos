@@ -705,9 +705,11 @@ setupkvm()
 	/* kernel data bss */
 	boot_map_region(pde,(uintptr_t)data_start,ROUNDUP(0xffffffff-(uintptr_t)data_start,PGSIZE),PADDR(data_start),PTE_W);
 	/* per-CPU kernel stack */
-	int cpuIdx = cpunum();
-	uintptr_t kstacktop_i = KSTACKTOP - cpuIdx * (KSTKSIZE + KSTKGAP);
-	boot_map_region(pde,kstacktop_i-KSTKSIZE,ROUNDUP(KSTKSIZE,PGSIZE),PADDR(&percpu_kstacks[cpuIdx]),PTE_W);
+	for(int i=0;i<NCPU;i++)
+	{
+		uintptr_t kstacktop_i = KSTACKTOP - i * (KSTKSIZE + KSTKGAP);
+		boot_map_region(pde,kstacktop_i-KSTKSIZE,ROUNDUP(KSTKSIZE,PGSIZE),PADDR(&percpu_kstacks[i]),PTE_W);
+	}
 	/* MMIO region for local apic */
 	extern uint32_t *lapic;
 	boot_map_region(pde, (uintptr_t) lapic,PGSIZE,lapicaddr,PTE_PCD|PTE_PWT|PTE_W);

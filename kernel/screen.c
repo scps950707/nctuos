@@ -2,6 +2,7 @@
 #include <inc/x86.h>
 #include <inc/string.h>
 #include <inc/stdio.h>
+#include <kernel/spinlock.h>
 
 /* These define our textpointer, our background and foreground
 *  colors (attributes), and x and y cursor coordinates */

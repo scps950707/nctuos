@@ -3,7 +3,7 @@
 
 #include <inc/trap.h>
 #include <kernel/mem.h>
-#define NR_TASKS	10
+#define NR_TASKS	32
 #define TIME_QUANT	100
 
 typedef enum
@@ -41,7 +41,8 @@ typedef struct
 //
 typedef struct
 {
-
+	uint32_t cnt;
+	Task *rq[NR_TASKS];
 } Runqueue;
 
 
@@ -53,5 +54,7 @@ void env_pop_tf(struct Trapframe *tf);
  * Interface for real implementation of kill and fork
  * Since their real implementation should be in kernel/task.c
  */
+void sys_kill(int pid);
+int sys_fork();
 
 #endif

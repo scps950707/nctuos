@@ -50,7 +50,6 @@ jmp loop
 .p2align 2                                # force 4 byte alignment
 gdt:
 SEG_NULL    # NULL segment
-
 SEG(STA_X|STA_R, 0x0, 0xffffffff)	# Kernel code segment
 SEG(STA_W, 0x0, 0xffffffff) 		# Kernel data segment
 

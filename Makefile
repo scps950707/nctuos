@@ -7,14 +7,18 @@ OBJDUMP = objdump
 NM = nm
 
 CFLAGS = -m32 -Wall -O -fstrength-reduce -fomit-frame-pointer -finline-functions -nostdinc -fno-builtin 
+LDFLAGS = -m elf_i386
 
 # Add debug symbol
 CFLAGS += -g
 
 CFLAGS += -I.
+# resolve __stack_chk_fai
+CFLAGS += -fno-stack-protector
 
 OBJDIR = .
 
+CPUS ?= 1
 
 CPUS ?= 1
 

@@ -6,6 +6,7 @@
 #include <kernel/task.h>
 #include <kernel/mem.h>
 #include <kernel/cpu.h>
+#include <kernel/spinlock.h>
 
 // Global descriptor table.
 //
@@ -51,7 +52,6 @@ struct Pseudodesc gdt_pd = {
 
 
 
-static struct tss_struct tss;
 Task tasks[NR_TASKS];
 
 extern char bootstack[];
@@ -66,7 +66,6 @@ uint32_t UDATA_SZ;
 uint32_t UBSS_SZ;
 uint32_t URODATA_SZ;
 
-Task *cur_task = NULL; //Current running task
 
 extern void sched_yield(void);
 
@@ -96,17 +95,38 @@ extern void sched_yield(void);
  * 6. Return the pid of the newly created task.
  
  */
+struct spinlock tasksLock;
 int task_create()
 {
+	spin_lock(&tasksLock);
 	Task *ts = NULL;
 
 	/* Find a free task structure */
+	int id = 0;
+	for(id=0;id<NR_TASKS;id++)
+	{
+		if(tasks[id].state==TASK_FREE)
+		{
+			ts = &tasks[id];
+			break;
+		}
+	}
+	if(ts==NULL)
+		return -1;
 
   /* Setup Page Directory and pages for kernel*/
   if (!(ts->pgdir = setupkvm()))
     panic("Not enough memory for per process page directory!\n");
 
   /* Setup User Stack */
+	for(uintptr_t i=USTACKTOP-USR_STACK_SIZE;i<USTACKTOP;i+=PGSIZE)
+	{
+		struct PageInfo *pp = NULL;
+		if((pp = page_alloc(ALLOC_ZERO))==NULL)
+			panic("page alloc failed");
+		if(page_insert(ts->pgdir,pp,(void*)i,PTE_U|PTE_W)<0)
+			panic("E_NO_MEM");
+	}
 
 	/* Setup Trapframe */
 	memset( &(ts->tf), 0, sizeof(ts->tf));
@@ -118,6 +138,12 @@ int task_create()
 	ts->tf.tf_esp = USTACKTOP-PGSIZE;
 
 	/* Setup task structure (task_id and parent_id) */
+	ts->task_id = id;
+	ts->parent_id =thiscpu->cpu_task?thiscpu->cpu_task->task_id:id;
+	ts->state = TASK_RUNNABLE;
+	ts->remind_ticks = TIME_QUANT; //task_init didn't setup
+	spin_unlock(&tasksLock);
+	return ts->task_id;
 }
 
 
@@ -142,6 +168,11 @@ int task_create()
 
 static void task_free(int pid)
 {
+	lcr3(PADDR(kern_pgdir));
+	for(uintptr_t i=USTACKTOP-USR_STACK_SIZE;i<USTACKTOP;i+=PGSIZE)
+		page_remove(tasks[pid].pgdir,(void*)i);
+	ptable_remove(tasks[pid].pgdir);
+	pgdir_remove(tasks[pid].pgdir);
 }
 
 // Lab6 TODO
@@ -159,6 +190,17 @@ void sys_kill(int pid)
    * Free the memory
    * and invoke the scheduler for yield
    */
+		spin_lock(&tasksLock);
+		tasks[pid].state=TASK_FREE;
+		task_free(pid);
+		spin_unlock(&tasksLock);
+		int idx=0;
+		for(idx=0;idx<thiscpu->cpu_rq.cnt;idx++)
+			if(thiscpu->cpu_rq.rq[idx]->task_id==pid) break;
+		for(int i=idx;i<thiscpu->cpu_rq.cnt;i++)
+			thiscpu->cpu_rq.rq[i]=thiscpu->cpu_rq.rq[i+1];
+		thiscpu->cpu_rq.cnt--;
+		sched_yield();
 	}
 }
 
@@ -197,15 +239,36 @@ int sys_fork()
 {
   /* pid for newly created process */
   int pid;
-	if ((uint32_t)cur_task)
+	if((pid=task_create())<0)
 	{
+		return -1;
+	}
+	if ((uintptr_t)thiscpu->cpu_task)
+	{
+		tasks[pid].tf=thiscpu->cpu_task->tf;
+
+		for(uintptr_t i=USTACKTOP-USR_STACK_SIZE;i<USTACKTOP;i+=PGSIZE)
+		{
+			void *parent_stack = page2kva(page_lookup(thiscpu->cpu_task->pgdir,(void*)i,NULL));
+			void *child_stack = page2kva(page_lookup(tasks[pid].pgdir,(void*)i,NULL));
+			memcpy(child_stack,parent_stack,PGSIZE);
+		}
+
     /* Step 4: All user program use the same code for now */
     setupvm(tasks[pid].pgdir, (uint32_t)UTEXT_start, UTEXT_SZ);
     setupvm(tasks[pid].pgdir, (uint32_t)UDATA_start, UDATA_SZ);
     setupvm(tasks[pid].pgdir, (uint32_t)UBSS_start, UBSS_SZ);
     setupvm(tasks[pid].pgdir, (uint32_t)URODATA_start, URODATA_SZ);
 
+		tasks[pid].tf.tf_regs.reg_eax=0;
+		/* cur_task->tf.tf_regs.reg_eax=pid; */
+
+		static int nextCPU=0;
+		cpus[nextCPU].cpu_rq.rq[cpus[nextCPU].cpu_rq.cnt]=&tasks[pid];
+		cpus[nextCPU].cpu_rq.cnt++;
+		nextCPU=(nextCPU+1)%ncpu;
 	}
+	return pid;
 }
 
 /* TODO: Lab5
@@ -254,28 +317,31 @@ void task_init_percpu()
 	
 	// Setup a TSS so that we get the right stack
 	// when we trap to the kernel.
-	memset(&(tss), 0, sizeof(tss));
-	tss.ts_esp0 = (uint32_t)bootstack + KSTKSIZE;
-	tss.ts_ss0 = GD_KD;
+	memset(&thiscpu->cpu_tss, 0, sizeof(thiscpu->cpu_tss));
+	thiscpu->cpu_tss.ts_esp0 = KSTACKTOP-thiscpu->cpu_id*(KSTKSIZE+KSTKGAP);
+	thiscpu->cpu_tss.ts_ss0 = GD_KD;
 
 	// fs and gs stay in user data segment
-	tss.ts_fs = GD_UD | 0x03;
-	tss.ts_gs = GD_UD | 0x03;
+	thiscpu->cpu_tss.ts_fs = GD_UD | 0x03;
+	thiscpu->cpu_tss.ts_gs = GD_UD | 0x03;
 
 	/* Setup TSS in GDT */
-	gdt[GD_TSS0 >> 3] = SEG16(STS_T32A, (uint32_t)(&tss), sizeof(struct tss_struct), 0);
-	gdt[GD_TSS0 >> 3].sd_s = 0;
+	gdt[(GD_TSS0+thiscpu->cpu_id*8) >> 3] = SEG16(STS_T32A, (uint32_t)(&thiscpu->cpu_tss), sizeof(struct tss_struct), 0);
+	gdt[(GD_TSS0+thiscpu->cpu_id*8) >> 3].sd_s = 0;
 
 	/* Setup first task */
 	i = task_create();
-	cur_task = &(tasks[i]);
+	thiscpu->cpu_task = &tasks[i];
 
 	/* For user program */
-	setupvm(cur_task->pgdir, (uint32_t)UTEXT_start, UTEXT_SZ);
-	setupvm(cur_task->pgdir, (uint32_t)UDATA_start, UDATA_SZ);
-	setupvm(cur_task->pgdir, (uint32_t)UBSS_start, UBSS_SZ);
-	setupvm(cur_task->pgdir, (uint32_t)URODATA_start, URODATA_SZ);
-	cur_task->tf.tf_eip = (uint32_t)user_entry;
+	setupvm(thiscpu->cpu_task->pgdir, (uint32_t)UTEXT_start, UTEXT_SZ);
+	setupvm(thiscpu->cpu_task->pgdir, (uint32_t)UDATA_start, UDATA_SZ);
+	setupvm(thiscpu->cpu_task->pgdir, (uint32_t)UBSS_start, UBSS_SZ);
+	setupvm(thiscpu->cpu_task->pgdir, (uint32_t)URODATA_start, URODATA_SZ);
+	if(thiscpu==bootcpu)
+		thiscpu->cpu_task->tf.tf_eip = (uint32_t)user_entry;
+	else
+		thiscpu->cpu_task->tf.tf_eip = (uint32_t)idle_entry;
 
 	/* Load GDT&LDT */
 	lgdt(&gdt_pd);
@@ -284,7 +350,11 @@ void task_init_percpu()
 	lldt(0);
 
 	// Load the TSS selector 
-	ltr(GD_TSS0);
+	ltr(GD_TSS0+thiscpu->cpu_id*8);
 
-	cur_task->state = TASK_RUNNING;
+	thiscpu->cpu_task->state = TASK_RUNNING;
+	for(int j=0;j<NR_TASKS;j++)
+		thiscpu->cpu_rq.rq[j]=NULL;
+	thiscpu->cpu_rq.cnt=1;
+	thiscpu->cpu_rq.rq[0]=&tasks[i];
 }

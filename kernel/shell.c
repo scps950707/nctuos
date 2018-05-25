@@ -13,7 +13,8 @@ struct Command {
 static struct Command commands[] = {
 	{ "help", "Display this list of commands", mon_help },
 	{ "kerninfo", "Display information about the kernel", mon_kerninfo },
-	{ "print_tick", "Display system tick", print_tick }
+	{ "print_tick", "Display system tick", print_tick },
+	{ "chgcolor", "Change color", chgcolor}
 };
 #define NCOMMANDS (sizeof(commands)/sizeof(commands[0]))
 
@@ -27,6 +28,27 @@ int mon_help(int argc, char **argv)
 	return 0;
 }
 
+void settextcolor( unsigned char forecolor, unsigned char backcolor );
+int chgcolor( int argc, char **argv )
+{
+    if ( argc == 1 )
+    {
+        cprintf( "No input text color!\n" );
+    }
+    else
+    {
+        int ascii= 0;
+	for(int i=0;i<strlen(argv[1]);i++)
+        {
+            ascii *= 10;
+	    ascii += argv[1][i] - '0';
+        }
+        settextcolor( ascii, 0 );
+        cprintf( "Change color %d!\n", ascii);
+    }
+    return 0;
+}
+
 int mon_kerninfo(int argc, char **argv)
 {
 	/* TODO: Print the kernel code and data section size 
@@ -35,6 +57,10 @@ int mon_kerninfo(int argc, char **argv)
    *       Use PROVIDE inside linker script and calculate the
    *       offset.
    */
+	extern uint32_t __TEXT_BEGIN__, etext, __KERNEL_BEGIN__, end;
+	cprintf( "Kernel code base start = 0x%x, size = %d\n", &__TEXT_BEGIN__, &etext - &__TEXT_BEGIN__ );
+	cprintf( "Kernel data base start = 0x%x, size = %d\n", &__KERNEL_BEGIN__, &end - &__KERNEL_BEGIN__ );
+	cprintf( "Kernel executable memory footprint: %dKB\n", ( &end - &__TEXT_BEGIN__ ) / 1024 );
 	return 0;
 }
 int print_tick(int argc, char **argv)

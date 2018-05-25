@@ -43,8 +43,8 @@ entry:
 
 relocated:
 
-  # Setup new gdt
-  lgdt    kgdtdesc
+    # Setup new gdt
+    lgdt    kgdtdesc
 
 	# Setup kernel stack
 	movl $0, %ebp
@@ -54,17 +54,15 @@ relocated:
 die:
 	jmp die
 
-  .p2align 2                                # force 4 byte alignment
-
+.p2align 2                                # force 4 byte alignment
 kgdt:
-  SEG_NULL    # NULL segment
-
-  SEG(STA_X|STA_R, 0x0, 0xffffffff)   # Kernel code segment
-  SEG(STA_W, 0x0, 0xffffffff)         # Kernel data segment
+    SEG_NULL    # NULL segment
+    SEG(STA_X|STA_R, 0x0, 0xffffffff)   # Kernel code segment
+    SEG(STA_W, 0x0, 0xffffffff)         # Kernel data segment
 
 kgdtdesc:
-  .word   0x17        # sizeof(gdt) - 1
-  .long   kgdt
+    .word   0x17        # sizeof(gdt) - 1
+    .long   kgdt
 
 .bss
   .align    PGSIZE

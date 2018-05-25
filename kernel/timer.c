@@ -32,10 +32,9 @@ void timer_handler(struct Trapframe *tf)
   jiffies++;
 
   extern Task tasks[];
+	lapic_eoi();
 
-  extern Task *cur_task;
-
-  if (cur_task != NULL)
+  if (thiscpu->cpu_task != NULL)
   {
   /* TODO: Lab 5
    * 1. Maintain the status of slept tasks
@@ -47,6 +46,21 @@ void timer_handler(struct Trapframe *tf)
    * 4. sched_yield() if the time is up for current task
    *
    */
+	for(i=thiscpu->cpu_rq.cnt-1;i>=0;i--)
+	{
+		if(thiscpu->cpu_rq.rq[i]->state==TASK_SLEEP)
+		{
+			if(--thiscpu->cpu_rq.rq[i]->remind_ticks==0)
+			{
+				thiscpu->cpu_rq.rq[i]->state=TASK_RUNNABLE;
+			}
+		}
+	}
+	if(--thiscpu->cpu_task->remind_ticks==0)
+	{
+		thiscpu->cpu_task->state=TASK_RUNNABLE;
+		sched_yield();
+	}
   }
 }
 

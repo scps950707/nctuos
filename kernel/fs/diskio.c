@@ -3,6 +3,7 @@
 #include <fat/diskio.h>
 #include <fat/ff.h>
 #include <kernel/drv/disk.h>
+#include <kernel/timer.h>
 
 /*TODO: Lab7, low level file operator.
  *  You have to provide some device control interface for 
@@ -66,6 +67,8 @@ DSTATUS disk_initialize (BYTE pdrv)
   /* Note: You can create a function under disk.c  
    *       to help you get the disk status.
    */
+	disk_init();
+	return RES_OK;
 }
 
 /**
@@ -82,6 +85,8 @@ DSTATUS disk_status (BYTE pdrv)
 /* Note: You can create a function under disk.c  
  *       to help you get the disk status.
  */
+	/* return ide_read(DISK_ID, ATA_REG_STATUS); */
+	return RES_OK;
 }
 
 /**
@@ -101,6 +106,8 @@ DRESULT disk_read (BYTE pdrv, BYTE* buff, DWORD sector, UINT count)
     BYTE *ptr = buff;
     UINT cur_sector = sector;
     /* TODO */
+	ide_read_sectors(DISK_ID,i,cur_sector,ptr);
+	return RES_OK;
 }
 
 /**
@@ -120,7 +127,8 @@ DRESULT disk_write (BYTE pdrv, const BYTE* buff, DWORD sector, UINT count)
     BYTE *ptr = buff;
     UINT cur_sector = sector;
     /* TODO */    
-
+	ide_write_sectors(DISK_ID,i,cur_sector,ptr);
+	return RES_OK;
 }
 
 /**
@@ -138,6 +146,23 @@ DRESULT disk_ioctl (BYTE pdrv, BYTE cmd, void* buff)
 {
     uint32_t *retVal = (uint32_t *)buff;
     /* TODO */    
+	switch(cmd)
+	{
+		case CTRL_SYNC:
+			break;
+		case GET_SECTOR_COUNT:
+			*retVal = ide_devices[DISK_ID].Size;
+			break;
+		case GET_SECTOR_SIZE:
+			*retVal=512;
+			break;
+		case GET_BLOCK_SIZE:
+			*retVal=512;
+			break;
+		case CTRL_TRIM:
+			break;
+	}
+	return RES_OK;
 }
 
 /**
@@ -147,4 +172,5 @@ DRESULT disk_ioctl (BYTE pdrv, BYTE cmd, void* buff)
 DWORD get_fattime (void)
 {
     /* TODO */
+	return sys_get_ticks();
 }

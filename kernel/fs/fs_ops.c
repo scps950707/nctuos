@@ -47,13 +47,18 @@ extern struct fs_dev fat_fs;
 */
 int fat_mount(struct fs_dev *fs, const void* data)
 {
-
+	FATFS *obj = (FATFS*)fs->data;
+	if(fs->path[0]=='\0')
+	{
+		printk("fat_mount fs->path==NULL\n");
+	}
+	return f_mount(obj,fs->path,1);
 }
 
 /* Note: Just call f_mkfs at root path '/' */
 int fat_mkfs(const char* device_name)
 {
-
+	f_mkfs("/",0,0);
 }
 
 /* Note: Convert the POSIX's open flag to elmfat's flag.
@@ -62,15 +67,37 @@ int fat_mkfs(const char* device_name)
 */
 int fat_open(struct fs_fd* file)
 {
+	int res=0;
+	BYTE mode=0;
+
+	if(file->flags==O_RDONLY)
+		mode |= FA_READ;
+	if(file->flags&O_WRONLY)
+		mode |= FA_WRITE;
+	if(file->flags&O_RDWR)
+		mode |= (FA_READ|FA_WRITE);
+	if((file->flags&O_CREAT)&&(file->flags&O_TRUNC))
+		mode |= FA_CREATE_ALWAYS;
+	else if(file->flags&O_CREAT)
+		mode|=FA_CREATE_NEW;
+
+	res = f_open((FIL*)file->data,file->path,mode);
+
+	if(file->flags&O_APPEND)
+		f_lseek((FIL*)file->data,((FIL*)file->data)->obj.objsize);
+	return -res;
 }
 
 int fat_close(struct fs_fd* file)
 {
-
+	int res = f_close(file->data);
+	return -res;
 }
 int fat_read(struct fs_fd* file, void* buf, size_t count)
 {
-
+	UINT br;
+	int res = f_read((FIL*)file->data,buf,count,&br);
+	return -res;
 }
 int fat_write(struct fs_fd* file, const void* buf, size_t count)
 {

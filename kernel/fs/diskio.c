@@ -85,8 +85,7 @@ DSTATUS disk_status (BYTE pdrv)
 /* Note: You can create a function under disk.c  
  *       to help you get the disk status.
  */
-	/* return ide_read(DISK_ID, ATA_REG_STATUS); */
-	return RES_OK;
+	return ide_read(DISK_ID, ATA_REG_STATUS);
 }
 
 /**

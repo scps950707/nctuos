@@ -5,6 +5,7 @@
 #include <inc/stdio.h>
 #include <inc/syscall.h>
 #include <fs.h>
+#include <kernel/fs/fat/ff.h>
 
 /*TODO: Lab7, file I/O system call interface.*/
 /*Note: Here you need handle the file system call from user.
@@ -50,32 +51,119 @@ int sys_open(const char *file, int flags, int mode)
 {
     //We dont care the mode.
 /* TODO */
+	int fd = fd_new();
+	if(fd<0)
+		return -STATUS_ENOSPC;
+	struct fs_fd *fsfd = fd_get(fd);
+	int res = file_open(fsfd, file, flags);
+	fd_put(fsfd);
+	if(res<0)
+	{
+		/* printk("res:%d\n",res); */
+		switch(res)
+		{
+			case -FR_NO_FILE:
+				return -STATUS_ENOENT;
+			case -FR_EXIST:
+				return -STATUS_EEXIST;
+		}
+	}
+	else
+	{
+		return fd;
+	}
 }
 
 int sys_close(int fd)
 {
 /* TODO */
+	struct fs_fd *fsfd = fd_get(fd);
+	if(fsfd==NULL)
+		return -STATUS_EINVAL;
+	/* if(fsfd->ref_count<=0) */
+		/* return -STATUS_EINVAL; */
+
+	/* int res = error_code (file_close(fsfd)); */
+	int res = file_close(fsfd);
+
+	/* fsfd */
+	fd_put(fsfd);
+	/* original */
+	fd_put(fsfd);
+	return res;
 }
 int sys_read(int fd, void *buf, size_t len)
 {
 /* TODO */
+	struct fs_fd *fsfd = fd_get(fd);
+	if(fsfd==NULL)
+		return -STATUS_EBADF;
+	if(buf==NULL||(int32_t)len<0)
+		return -STATUS_EINVAL;
+
+	int res = file_read(fsfd, buf, len);
+
+	fd_put(fsfd);
+	/* if(res<0) */
+	/* 	return error_code(res); */
+	return res;
 }
 int sys_write(int fd, const void *buf, size_t len)
 {
 /* TODO */
+	struct fs_fd *fsfd = fd_get(fd);
+	if(fsfd==NULL)
+		return -STATUS_EBADF;
+	if(buf==NULL||(int32_t)len<0)
+		return -STATUS_EINVAL;
+
+	int res = file_write(fsfd, buf, len);
+
+	fd_put(fsfd);
+	/* if(res<0) */
+	/* 	return error_code(res); */
+	return res;
 }
 
 /* Note: Check the whence parameter and calcuate the new offset value before do file_seek() */
 off_t sys_lseek(int fd, off_t offset, int whence)
 {
 /* TODO */
+	struct fs_fd *fsfd = fd_get(fd);
+	if(fsfd==NULL)
+		return -STATUS_EBADF;
+	if(offset<0)
+		return -STATUS_EINVAL;
+
+	int newOffset=0;
+	switch (whence) {
+	case SEEK_SET:
+		newOffset=offset;
+		break;
+	case SEEK_CUR:
+		newOffset = fsfd->pos+offset;
+		break;
+	case SEEK_END:
+		newOffset = fsfd->size+offset;
+		break;
+	}
+
+	fd_put(fsfd);
+	int res = file_lseek(fsfd, newOffset);
+	/* if(res<0) */
+		/* printk("file_lseek ret:%d\n",res); */
+	return res;
 }
 
 int sys_unlink(const char *pathname)
 {
 /* TODO */ 
+	int res = file_unlink(pathname);
+	if(res==-FR_NO_FILE)
+		return -STATUS_ENOENT;
+	return res;
 }
 
 
-              
+
 

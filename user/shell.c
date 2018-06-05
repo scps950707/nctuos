@@ -26,6 +26,9 @@ int filetest2(int argc, char **argv);
 int filetest3(int argc, char **argv);
 int filetest4(int argc, char **argv);
 int filetest5(int argc, char **argv);
+int shell_ls(int argc, char **argv);
+int shell_rm(int argc, char **argv);
+int shell_touch(int argc, char **argv);
 int spinlocktest(int argc, char **argv);
 
 
@@ -42,9 +45,50 @@ struct Command commands[] = {
   { "filetest3", "Laqrge block test", filetest3},
   { "filetest4", "Error test", filetest4},
   { "filetest5", "unlink test", filetest5},
+  { "ls", "list file or directory", shell_ls},
+  { "rm", "remove file", shell_rm},
+  { "touch", "create an empty file at path", shell_touch},
   { "spinlocktest", "Test spinlock", spinlocktest }
 };
 const int NCOMMANDS = (sizeof(commands)/sizeof(commands[0]));
+
+int shell_ls(int argc, char **argv)
+{
+	if(argc==1)
+	{
+		if(ls("/")<0)
+			cprintf("File or path not exist.\n");
+	}
+	else
+	{
+		if(ls(argv[1])<0)
+			cprintf("File or path not exist.\n");
+	}
+	return 0;
+}
+
+int shell_rm(int argc, char **argv)
+{
+	if(argc==2)
+	{
+		if(rm(argv[1])<0)
+			cprintf("Cannot remove path\n");
+		else
+			cprintf("Remove %s successfully\n",argv[1]);
+	}
+	return 0;
+}
+int shell_touch(int argc, char **argv)
+{
+	if(argc==2)
+	{
+		if(touch(argv[1])<0)
+			cprintf("Touch fialed\n");
+		else
+			cprintf("Touch %s successfully\n",argv[1]);
+	}
+	return 0;
+}
 
 int mem_stat(int argc, char **argv)
 {

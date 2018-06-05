@@ -80,10 +80,7 @@ int sys_close(int fd)
 	struct fs_fd *fsfd = fd_get(fd);
 	if(fsfd==NULL)
 		return -STATUS_EINVAL;
-	/* if(fsfd->ref_count<=0) */
-		/* return -STATUS_EINVAL; */
 
-	/* int res = error_code (file_close(fsfd)); */
 	int res = file_close(fsfd);
 
 	/* fsfd */
@@ -104,8 +101,6 @@ int sys_read(int fd, void *buf, size_t len)
 	int res = file_read(fsfd, buf, len);
 
 	fd_put(fsfd);
-	/* if(res<0) */
-	/* 	return error_code(res); */
 	return res;
 }
 int sys_write(int fd, const void *buf, size_t len)
@@ -120,8 +115,6 @@ int sys_write(int fd, const void *buf, size_t len)
 	int res = file_write(fsfd, buf, len);
 
 	fd_put(fsfd);
-	/* if(res<0) */
-	/* 	return error_code(res); */
 	return res;
 }
 
@@ -150,8 +143,6 @@ off_t sys_lseek(int fd, off_t offset, int whence)
 
 	fd_put(fsfd);
 	int res = file_lseek(fsfd, newOffset);
-	/* if(res<0) */
-		/* printk("file_lseek ret:%d\n",res); */
 	return res;
 }
 
@@ -164,6 +155,23 @@ int sys_unlink(const char *pathname)
 	return res;
 }
 
+int sys_ls(const char *pathname)
+{
+	int res = file_ls(pathname);
+	if(res==-FR_NO_PATH)
+		return -STATUS_ENOENT;
+	return res;
+}
 
+int sys_rm(const char *pathname)
+{
+	int res = file_rm(pathname);
+	if(res==-FR_NO_FILE)
+		return -STATUS_ENOENT;
+	return res;
+}
 
-
+int sys_touch(const char *pathname)
+{
+	return file_touch(pathname);
+}

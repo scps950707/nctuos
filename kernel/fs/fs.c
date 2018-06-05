@@ -130,6 +130,18 @@ int file_unlink(const char *path)
 {
 	return fat_fs.ops->unlink (NULL, path);
 }
+int file_ls(const char* pathname)
+{
+	return fat_fs.ops->ls(pathname);
+}
+int file_rm(const char* pathname)
+{
+	return fat_fs.ops->rm(pathname);
+}
+int file_touch(const char* pathname)
+{
+	return fat_fs.ops->touch(pathname);
+}
 
 
 /**

@@ -48,10 +48,6 @@ extern struct fs_dev fat_fs;
 int fat_mount(struct fs_dev *fs, const void* data)
 {
 	FATFS *obj = (FATFS*)fs->data;
-	/* if(fs->path[0]=='\0') */
-	/* { */
-	/* 	printk("fat_mount fs->path==NULL\n"); */
-	/* } */
 	int res = f_mount(obj,fs->path,1);
 	return -res;
 }
@@ -139,6 +135,61 @@ int fat_unlink(struct fs_fd* file, const char *pathname)
 	return -res;
 }
 
+static void printInfo(FILINFO *fno)
+{
+	printk("%s ",fno->fname);
+	printk("type:");
+	if(fno->fattrib&AM_DIR)
+		printk("DIR");
+	else
+		printk("FILE");
+	printk(" size:%d\n",fno->fsize);
+}
+
+int fat_ls(const char *pathname)
+{
+	FILINFO fno;
+	int res = f_stat(pathname,&fno);
+	if(res==FR_OK&&!(fno.fattrib&AM_DIR))
+	{
+		printInfo(&fno);
+		return FR_OK;
+	}
+
+	DIR dp;
+	res = f_opendir(&dp,pathname);
+	if(res!=FR_OK)
+		return -res;
+	while(true)
+	{
+		res=f_readdir(&dp,&fno);
+		if(res!=FR_OK)
+			return -res;
+		if(fno.fname[0]==0)
+			break;
+		else
+			printInfo(&fno);
+	}
+	res = f_closedir(&dp);
+	if(res!=FR_OK)
+		return -res;
+
+	return FR_OK;
+}
+
+int fat_rm(const char *pathname)
+{
+	int res = f_unlink(pathname);
+	return -res;
+}
+
+int fat_touch(const char *pathname)
+{
+	FIL fil;
+	int res = f_open(&fil,pathname,FA_OPEN_ALWAYS);
+	return -res;
+}
+
 struct fs_ops elmfat_ops = {
     .dev_name = "elmfat",
     .mount = fat_mount,
@@ -148,8 +199,8 @@ struct fs_ops elmfat_ops = {
     .read = fat_read,
     .write = fat_write,
     .lseek = fat_lseek,
-    .unlink = fat_unlink
+    .unlink = fat_unlink,
+	.ls = fat_ls,
+	.rm = fat_rm,
+	.touch = fat_touch
 };
-
-
-

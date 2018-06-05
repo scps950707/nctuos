@@ -54,6 +54,9 @@ struct fs_ops
     
     //int (*getdents)	(struct fs_fd* fd, struct dirent* dirp, uint32_t count);
     int (*unlink)	(struct fs_fd* fs, const char* pathname);
+	int (*ls)       (const char* pathname);
+	int (*rm)       (const char* pathname);
+	int (*touch)       (const char* pathname);
 
 };
 
@@ -72,5 +75,9 @@ int file_unlink(const char *path);
 struct fs_fd* fd_get(int fd);
 void fd_put(struct fs_fd* fd);
 int fd_new(void);
+
+int file_ls(const char* pathname);
+int file_rm(const char* pathname);
+int file_touch(const char* pathname);
 
 #endif
